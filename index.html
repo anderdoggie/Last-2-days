@@ -16,7 +16,7 @@
     <style>
         :root { --bg-dark: #0f172a; --bg-light: #f1f5f9; --text-dark: #f8fafc; --text-light: #1e293b; }
         
-        /* 布局修复：锁定视口高度，防止整体橡皮筋效果 */
+        /* 布局修复：锁定视口高度 */
         html, body {
             height: 100%;
             margin: 0;
@@ -32,7 +32,6 @@
             display: flex; 
             flex-direction: column; 
             width: 100vw;
-            /* 适配 iOS 安全区域 */
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
             -webkit-tap-highlight-color: transparent; 
@@ -52,12 +51,12 @@
         .picker-item { flex: 0 0 80px; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.3s; opacity: 0.3; transform: scale(0.8); }
         .picker-item.active { opacity: 1; transform: scale(1.1); }
 
-        /* 任务列表核心修复：开启独立滚动区域 */
+        /* 任务列表核心修复 */
         #pendingContainer {
             flex: 1; 
             overflow-y: auto; 
             -webkit-overflow-scrolling: touch; 
-            padding: 0 1rem 1.5rem 1rem;
+            padding: 0.5rem 1rem 1.5rem 1rem;
         }
 
         .tap-scale:active { transform: scale(0.95); }
@@ -73,45 +72,47 @@
 </head>
 <body>
 
-    <header class="flex justify-between items-center px-6 py-4 shrink-0">
-        <button onclick="toggleTheme()" class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-full shadow-lg tap-scale">
+    <header class="flex justify-between items-center px-6 py-2 shrink-0">
+        <button onclick="toggleTheme()" class="w-9 h-9 flex items-center justify-center bg-slate-800/50 rounded-full shadow-lg tap-scale text-sm">
             <span id="themeIcon">🌙</span>
         </button>
         <div class="flex gap-2">
-            <button onclick="undo()" class="px-4 py-2 bg-slate-800/50 rounded-full text-[11px] font-black text-orange-500 shadow-lg tap-scale">↩ 撤销</button>
-            <button onclick="toggleHistory(true)" class="px-4 py-2 bg-slate-800/50 rounded-full text-[11px] font-black shadow-lg tap-scale">📜 记录</button>
+            <button onclick="undo()" class="px-3 py-1.5 bg-slate-800/50 rounded-full text-[10px] font-black text-orange-500 shadow-lg tap-scale">↩ UNDO</button>
+            <button onclick="toggleHistory(true)" class="px-3 py-1.5 bg-slate-800/50 rounded-full text-[10px] font-black shadow-lg tap-scale">📜 LOG</button>
         </div>
     </header>
 
-    <main class="flex flex-col items-center justify-center py-2 shrink-0">
-        <div class="relative w-56 h-56">
-            <svg width="224" height="224" viewBox="0 0 320 320">
+    <main class="flex flex-col items-center justify-center py-1 shrink-0">
+        <div class="relative w-48 h-48">
+            <svg width="192" height="192" viewBox="0 0 320 320">
                 <circle class="ring-bg" cx="160" cy="160" r="120" />
                 <circle id="innerCircle" class="ring-inner" cx="160" cy="160" r="120" stroke-dasharray="753.98" stroke-dashoffset="0" stroke="#22c55e" />
                 <circle class="ring-bg" cx="160" cy="160" r="140" style="stroke-width:2;" />
                 <circle id="outerCircle" class="ring-outer" cx="160" cy="160" r="140" stroke-dasharray="879.64" stroke-dashoffset="0" stroke="#3b82f6" />
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <div id="timeDisplay" class="text-3xl font-mono font-black tracking-tighter mb-1">00:00:00</div>
-                <div class="text-[8px] opacity-40 tracking-[0.2em] uppercase font-bold">Life Remaining</div>
+                <div id="timeDisplay" class="text-2xl font-mono font-black tracking-tighter mb-0.5">00:00:00</div>
+                <div class="text-[7px] opacity-40 tracking-[0.2em] uppercase font-bold">Life Remaining</div>
             </div>
         </div>
     </main>
 
-    <div class="px-6 py-4 flex flex-col gap-4 shrink-0">
-        <input id="actionNote" type="text" placeholder="输入任务备注..." 
-               class="w-full bg-slate-500/10 border border-slate-500/20 rounded-2xl px-5 py-3 text-base text-center outline-none focus:ring-2 focus:ring-blue-500">
-        <div id="typePicker" class="picker-container h-16"></div>
-        <div class="flex gap-3">
-            <button onclick="submitAction('inbox')" class="flex-1 py-4 btn-inbox text-white font-black rounded-2xl tap-scale flex flex-col items-center">
-                <span class="text-[9px] opacity-70 uppercase">Inbox</span><span>收纳</span>
+    <div class="px-6 py-2 flex flex-col gap-2 shrink-0">
+        <input id="actionNote" type="text" placeholder="Task memo..." 
+               class="w-full bg-slate-500/10 border border-slate-500/20 rounded-xl px-4 py-2 text-sm text-center outline-none focus:ring-2 focus:ring-blue-500">
+        
+        <div id="typePicker" class="picker-container h-14"></div>
+        
+        <div class="flex gap-2">
+            <button onclick="submitAction('inbox')" class="flex-1 py-3 btn-inbox text-white font-black rounded-xl tap-scale flex flex-col items-center justify-center">
+                <span class="text-xs tracking-wider">INBOX</span>
             </button>
-            <button onclick="submitAction('start_now')" class="flex-1 py-4 btn-start text-white font-black rounded-2xl tap-scale flex flex-col items-center">
-                <span class="text-[9px] opacity-70 uppercase">Start</span><span>开始</span>
+            <button onclick="submitAction('start_now')" class="flex-1 py-3 btn-start text-white font-black rounded-xl tap-scale flex flex-col items-center justify-center">
+                <span class="text-xs tracking-wider">START</span>
             </button>
-            <button onclick="submitAction('finish_direct')" class="flex-[1.2] py-4 btn-finish text-white font-black rounded-2xl tap-scale flex flex-col items-center relative">
-                <span class="text-[9px] opacity-70 uppercase">Finish</span><span>完成</span>
-                <div id="injectValue" class="absolute right-2 top-2 text-[9px] bg-white/20 px-1 rounded-full">+0.5h</div>
+            <button onclick="submitAction('finish_direct')" class="flex-[1.2] py-3 btn-finish text-white font-black rounded-xl tap-scale flex flex-col items-center justify-center relative">
+                <span class="text-xs tracking-wider">DONE</span>
+                <div id="injectValue" class="absolute right-1.5 top-1.5 text-[8px] bg-white/20 px-1 rounded-full">+0.5h</div>
             </button>
         </div>
     </div>
@@ -122,7 +123,7 @@
     <!-- 历史记录抽屉 -->
     <div id="historyDrawer" class="fixed inset-0 z-50 transform translate-y-full transition-transform duration-300 flex flex-col">
         <div class="flex-grow bg-black/20" onclick="toggleHistory(false)"></div>
-        <div class="bg-slate-900 rounded-t-[2.5rem] p-6 h-[75vh] flex flex-col">
+        <div class="bg-slate-900 rounded-t-[2rem] p-6 h-[70vh] flex flex-col">
             <div class="w-12 h-1 bg-white/10 rounded-full mx-auto mb-6"></div>
             <div id="historyList" class="overflow-y-auto space-y-2 flex-grow"></div>
         </div>
@@ -177,8 +178,8 @@
             const picker = document.getElementById('typePicker');
             picker.innerHTML = CONFIG.map((item, index) => `
                 <div class="picker-item ${index === 0 ? 'active' : ''}" onclick="scrollToItem(${index})">
-                    <span class="text-3xl mb-1">${item.emoji}</span>
-                    <span class="text-[10px] font-black opacity-60">${item.name}</span>
+                    <span class="text-2xl mb-0.5">${item.emoji}</span>
+                    <span class="text-[9px] font-black opacity-60">${item.name}</span>
                 </div>
             `).join('');
             
@@ -212,12 +213,12 @@
 
         function submitAction(type) {
             const config = CONFIG[state.selectedIndex];
-            const note = document.getElementById('actionNote').value.trim() || '未命名任务';
+            const note = document.getElementById('actionNote').value.trim() || 'Untitled Task';
             const now = Date.now();
             if (type === 'finish_direct') {
                 const awardHours = Math.min(config.type === 'fixed' ? config.value : 0, MAX_SINGLE_AWARD);
                 state.timeLeft += awardHours * 3600;
-                addHistory(config, note, awardHours, "直接完成");
+                addHistory(config, note, awardHours, "Done");
             } else {
                 state.pending.unshift({
                     id: now, createdAt: now, note, emoji: config.emoji, 
@@ -245,7 +246,7 @@
             if (task.status === 'running') totalSec += (Date.now() - task.startedAt) / 1000;
             const awardHours = Math.min(config.type === 'multiplier' ? (totalSec/3600)*config.factor : config.value, MAX_SINGLE_AWARD);
             state.timeLeft += awardHours * 3600;
-            addHistory(config, task.note, awardHours, "任务完成");
+            addHistory(config, task.note, awardHours, "Done");
             state.pending = state.pending.filter(p => p.id !== id);
             save(); render(); renderPending(true);
         }
