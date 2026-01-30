@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Survival Timer</title>
+    <title>Survival Timer - nid Project</title>
     
     <!-- PWA 配置 -->
     <link rel="manifest" href="manifest.json">
@@ -14,43 +14,67 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 此处保留之前的 CSS 样式，篇幅原因略 */
         :root { --bg-dark: #0f172a; --bg-light: #f1f5f9; --text-dark: #f8fafc; --text-light: #1e293b; }
-        body { background-color: var(--bg-dark); color: var(--text-dark); transition: background-color 0.3s ease, color 0.3s ease; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; height: 100vh; width: 100vw; display: flex; flex-direction: column; position: fixed; -webkit-tap-highlight-color: transparent; }
+        
+        /* 布局修复：锁定视口高度，防止整体橡皮筋效果 */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; 
+        }
+
+        body { 
+            background-color: var(--bg-dark); 
+            color: var(--text-dark); 
+            transition: background-color 0.3s ease, color 0.3s ease; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            width: 100vw;
+            /* 适配 iOS 安全区域 */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            -webkit-tap-highlight-color: transparent; 
+        }
+        
         body.light-mode { background-color: var(--bg-light); color: var(--text-light); }
+        
+        /* 圆环进度条 */
         .ring-inner { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s; transform: rotate(-90deg); transform-origin: center; }
         .ring-outer { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: rotate(-90deg); transform-origin: center; }
         .ring-bg { fill: none; stroke: #334155; stroke-width: 12; opacity: 0.2; }
         body.light-mode .ring-bg { stroke: #cbd5e1; opacity: 0.5; }
-        .picker-container { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none; padding: 0 calc(50% - 40px); mask-image: linear-gradient(to right, transparent, black 40%, black 60%, transparent); -webkit-overflow-scrolling: touch; }
+
+        /* 类型选择器 */
+        .picker-container { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 0 calc(50% - 40px); mask-image: linear-gradient(to right, transparent, black 40%, black 60%, transparent); -webkit-overflow-scrolling: touch; }
         .picker-container::-webkit-scrollbar { display: none; }
-        .picker-item { flex: 0 0 80px; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.3s, opacity 0.3s; opacity: 0.3; transform: scale(0.8); }
+        .picker-item { flex: 0 0 80px; scroll-snap-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.3s; opacity: 0.3; transform: scale(0.8); }
         .picker-item.active { opacity: 1; transform: scale(1.1); }
-        .drawer { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; }
-        .drawer.open { transform: translateY(0); pointer-events: auto; }
-        .drawer-content { margin-top: auto; border-top-left-radius: 2.5rem; border-top-right-radius: 2.5rem; padding: 1.5rem 1.5rem calc(2rem + env(safe-area-inset-bottom)); box-shadow: 0 -10px 40px rgba(0,0,0,0.4); backdrop-filter: blur(20px); background-color: rgba(30, 41, 59, 0.95); }
-        body.light-mode .drawer-content { background-color: rgba(255, 255, 255, 0.95); }
+
+        /* 任务列表核心修复：开启独立滚动区域 */
+        #pendingContainer {
+            flex: 1; 
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch; 
+            padding: 0 1rem 1.5rem 1rem;
+        }
+
         .tap-scale:active { transform: scale(0.95); }
         .btn-inbox { background: linear-gradient(135deg, #6366f1, #4f46e5); }
         .btn-start { background: linear-gradient(135deg, #f59e0b, #d97706); }
         .btn-finish { background: linear-gradient(135deg, #10b981, #059669); }
-        .pending-item { animation: slide-in 0.3s ease-out; position: relative; overflow: hidden; transition: all 0.3s ease; }
+        
+        .pending-item { animation: slide-in 0.3s ease-out; position: relative; margin-bottom: 0.75rem; }
         @keyframes slide-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .theme-core { color: #fbbf24 !important; filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.3)); border-color: rgba(251, 191, 36, 0.3) !important; }
-        .theme-input { color: #60a5fa !important; filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.3)); border-color: rgba(96, 165, 250, 0.3) !important; }
-        .theme-self { color: #4ade80 !important; filter: drop-shadow(0 0 8px rgba(74, 222, 128, 0.3)); border-color: rgba(74, 222, 128, 0.3) !important; }
-        .task-timer-bar { position: absolute; bottom: 0; left: 0; height: 2px; background: #ef4444; opacity: 0.3; transition: width 1s linear; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-        .animate-shake { animation: shake 0.2s ease-in-out 3; }
-        .reward-pulse { animation: pulse-green 2s infinite; }
-        @keyframes pulse-green { 0% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0.5; transform: scale(1); } }
+        
+        .task-timer-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: #ef4444; opacity: 0.4; transition: width 1s linear; border-radius: 0 0 1rem 1rem; }
     </style>
 </head>
-<body class="safe-area-inset">
+<body>
 
-    <!-- HTML 结构保持不变 -->
-    <header class="flex justify-between items-center px-6 pt-10 pb-2 shrink-0">
-        <button onclick="toggleTheme()" class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-full shadow-lg tap-scale text-lg">
+    <header class="flex justify-between items-center px-6 py-4 shrink-0">
+        <button onclick="toggleTheme()" class="w-10 h-10 flex items-center justify-center bg-slate-800/50 rounded-full shadow-lg tap-scale">
             <span id="themeIcon">🌙</span>
         </button>
         <div class="flex gap-2">
@@ -59,95 +83,272 @@
         </div>
     </header>
 
-    <main class="flex-grow flex flex-col items-center justify-center relative">
-        <svg width="280" height="280" viewBox="0 0 320 320">
-            <circle class="ring-bg" cx="160" cy="160" r="120" />
-            <circle id="innerCircle" class="ring-inner" cx="160" cy="160" r="120" stroke-dasharray="753.98" stroke-dashoffset="0" stroke="#22c55e" />
-            <circle class="ring-bg" cx="160" cy="160" r="140" style="stroke-width:2;" />
-            <circle id="outerCircle" class="ring-outer" cx="160" cy="160" r="140" stroke-dasharray="879.64" stroke-dashoffset="0" stroke="#3b82f6" />
-        </svg>
-        <div class="absolute text-center pointer-events-none">
-            <div id="timeDisplay" class="text-5xl font-mono font-black tracking-tighter mb-1">00:00:00</div>
-            <div class="text-[10px] opacity-40 tracking-[0.3em] uppercase font-bold">Life Remaining</div>
+    <main class="flex flex-col items-center justify-center py-2 shrink-0">
+        <div class="relative w-56 h-56">
+            <svg width="224" height="224" viewBox="0 0 320 320">
+                <circle class="ring-bg" cx="160" cy="160" r="120" />
+                <circle id="innerCircle" class="ring-inner" cx="160" cy="160" r="120" stroke-dasharray="753.98" stroke-dashoffset="0" stroke="#22c55e" />
+                <circle class="ring-bg" cx="160" cy="160" r="140" style="stroke-width:2;" />
+                <circle id="outerCircle" class="ring-outer" cx="160" cy="160" r="140" stroke-dasharray="879.64" stroke-dashoffset="0" stroke="#3b82f6" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <div id="timeDisplay" class="text-3xl font-mono font-black tracking-tighter mb-1">00:00:00</div>
+                <div class="text-[8px] opacity-40 tracking-[0.2em] uppercase font-bold">Life Remaining</div>
+            </div>
         </div>
     </main>
 
-    <footer class="pb-6 flex flex-col gap-4 shrink-0">
-        <div class="px-8">
-            <input id="actionNote" type="text" placeholder="输入任务备注..." 
-                   class="w-full bg-slate-500/10 border border-slate-500/20 rounded-2xl px-5 py-3.5 text-base font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all text-center">
-        </div>
-        <div id="typePicker" class="picker-container py-2"></div>
-        <div class="px-6 flex gap-3">
-            <button onclick="submitAction('inbox')" class="flex-1 py-4 btn-inbox text-white font-black rounded-2xl shadow-lg tap-scale flex flex-col items-center">
-                <span class="text-[10px] opacity-70 mb-0.5 tracking-wider">INBOX</span><span class="text-base">收纳</span>
+    <div class="px-6 py-4 flex flex-col gap-4 shrink-0">
+        <input id="actionNote" type="text" placeholder="输入任务备注..." 
+               class="w-full bg-slate-500/10 border border-slate-500/20 rounded-2xl px-5 py-3 text-base text-center outline-none focus:ring-2 focus:ring-blue-500">
+        <div id="typePicker" class="picker-container h-16"></div>
+        <div class="flex gap-3">
+            <button onclick="submitAction('inbox')" class="flex-1 py-4 btn-inbox text-white font-black rounded-2xl tap-scale flex flex-col items-center">
+                <span class="text-[9px] opacity-70 uppercase">Inbox</span><span>收纳</span>
             </button>
-            <button onclick="submitAction('start_now')" class="flex-1 py-4 btn-start text-white font-black rounded-2xl shadow-lg tap-scale flex flex-col items-center">
-                <span class="text-[10px] opacity-70 mb-0.5 tracking-wider">START</span><span class="text-base">开始</span>
+            <button onclick="submitAction('start_now')" class="flex-1 py-4 btn-start text-white font-black rounded-2xl tap-scale flex flex-col items-center">
+                <span class="text-[9px] opacity-70 uppercase">Start</span><span>开始</span>
             </button>
-            <button onclick="submitAction('finish_direct')" class="flex-[1.2] py-4 btn-finish text-white font-black rounded-2xl shadow-lg tap-scale flex flex-col items-center relative overflow-hidden">
-                <span class="text-[10px] opacity-70 mb-0.5 tracking-wider">FINISH</span><span class="text-base">完成</span>
-                <div id="injectValue" class="absolute right-2 top-2 text-[9px] bg-white/20 px-1.5 py-0.5 rounded-full">+0.5h</div>
+            <button onclick="submitAction('finish_direct')" class="flex-[1.2] py-4 btn-finish text-white font-black rounded-2xl tap-scale flex flex-col items-center relative">
+                <span class="text-[9px] opacity-70 uppercase">Finish</span><span>完成</span>
+                <div id="injectValue" class="absolute right-2 top-2 text-[9px] bg-white/20 px-1 rounded-full">+0.5h</div>
             </button>
-        </div>
-        <div class="px-2">
-            <div id="pendingContainer" class="max-h-[220px] overflow-y-auto space-y-1.5 px-2"></div>
-        </div>
-    </footer>
-
-    <div id="historyDrawer" class="drawer">
-        <div class="flex-grow bg-black/40" onclick="toggleHistory(false)"></div>
-        <div class="drawer-content !h-[80vh] flex flex-col">
-            <div class="w-12 h-1.5 bg-slate-500/30 rounded-full mx-auto mb-4"></div>
-            <div class="flex justify-between items-center px-2 mb-4">
-                <h2 class="text-xl font-black italic uppercase tracking-tighter">History Log</h2>
-                <button onclick="toggleHistory(false)" class="text-2xl opacity-50">&times;</button>
-            </div>
-            <div id="historyList" class="flex-grow overflow-y-auto space-y-1.5 pb-10 px-1"></div>
         </div>
     </div>
 
-    <div id="deathOverlay" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center bg-black">
-        <div class="text-red-600 text-7xl font-black mb-12 animate-pulse text-center leading-none tracking-tighter">YOU ARE<br>TERMINATED</div>
-        <button onclick="reborn()" class="px-16 py-5 bg-red-600 text-white font-black rounded-full shadow-[0_0_50px_rgba(220,38,38,0.4)] tap-scale text-xl">RE-INITIALIZE</button>
+    <!-- 任务列表滚动区 -->
+    <div id="pendingContainer"></div>
+
+    <!-- 历史记录抽屉 -->
+    <div id="historyDrawer" class="fixed inset-0 z-50 transform translate-y-full transition-transform duration-300 flex flex-col">
+        <div class="flex-grow bg-black/20" onclick="toggleHistory(false)"></div>
+        <div class="bg-slate-900 rounded-t-[2.5rem] p-6 h-[75vh] flex flex-col">
+            <div class="w-12 h-1 bg-white/10 rounded-full mx-auto mb-6"></div>
+            <div id="historyList" class="overflow-y-auto space-y-2 flex-grow"></div>
+        </div>
+    </div>
+
+    <div id="deathOverlay" class="hidden fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black">
+        <div class="text-red-600 text-5xl font-black mb-12 animate-pulse text-center">YOU ARE<br>TERMINATED</div>
+        <button onclick="reborn()" class="px-12 py-4 bg-red-600 text-white font-black rounded-full">RE-INITIALIZE</button>
     </div>
 
     <script>
         // 注册 Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(() => {
-                    console.log('ServiceWorker registered');
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    reg.onupdatefound = () => {
+                        const installingWorker = reg.installing;
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                window.location.reload(); 
+                            }
+                        };
+                    };
                 });
             });
         }
 
-        /* 核心逻辑脚本 (此处保留之前版本的所有功能函数) */
-        // ... (省略之前的核心 JS 逻辑) ...
         const TASK_LIFESPAN = 48 * 3600; const PUNISHMENT = 3 * 3600; const MAX_SINGLE_AWARD = 8; const PROGRESS_CYCLE = 48 * 3600;
-        const CONFIG = [{ id: 'core', name: '核心', emoji: '🎯', type: 'multiplier', factor: 2.0 }, { id: 'input', name: '输入', emoji: '📚', type: 'multiplier', factor: 1.2 }, { id: 'self_care', name: '修身', emoji: '🌱', type: 'fixed', value: 1.5 }, { id: 'admin', name: '杂项', emoji: '📎', type: 'fixed', value: 0.4 }, { id: 'spark', name: '灵感', emoji: '⚡', type: 'fixed', value: 0.1 }];
-        let state = { timeLeft: parseFloat(localStorage.getItem('st_timeLeft')) || 48 * 3600, history: JSON.parse(localStorage.getItem('st_history')) || [], pending: JSON.parse(localStorage.getItem('st_pending')) || [], isDark: true, selectedIndex: 0 };
-        function getThemeClass(typeId) { const mapping = { 'core': 'theme-core', 'input': 'theme-input', 'self_care': 'theme-self', 'admin': 'opacity-60', 'spark': 'italic' }; return mapping[typeId] || ''; }
-        function initPicker() { const picker = document.getElementById('typePicker'); picker.innerHTML = CONFIG.map((item, index) => `<div class="picker-item ${index === 0 ? 'active' : ''}" data-index="${index}" onclick="scrollToItem(${index})"><span class="text-4xl mb-2">${item.emoji}</span><span class="text-[11px] font-black opacity-60">${item.name}</span></div>`).join(''); picker.addEventListener('scroll', () => { const center = picker.scrollLeft + picker.offsetWidth / 2; const items = picker.querySelectorAll('.picker-item'); let minDiff = Infinity; let activeIdx = 0; items.forEach((item, idx) => { const diff = Math.abs(center - (item.offsetLeft + item.offsetWidth / 2)); if (diff < minDiff) { minDiff = diff; activeIdx = idx; } }); if (state.selectedIndex !== activeIdx) { state.selectedIndex = activeIdx; updatePickerVisuals(); } }); }
-        function scrollToItem(index) { const picker = document.getElementById('typePicker'); const item = picker.children[index]; picker.scrollTo({ left: item.offsetLeft - (picker.offsetWidth / 2) + (item.offsetWidth / 2), behavior: 'smooth' }); }
-        function updatePickerVisuals() { const items = document.querySelectorAll('.picker-item'); items.forEach((item, idx) => { item.classList.toggle('active', idx === state.selectedIndex); }); const config = CONFIG[state.selectedIndex]; const displayValue = config.type === 'multiplier' ? `${config.factor}x` : `+${config.value}h`; document.getElementById('injectValue').innerText = displayValue; }
-        function formatAwardTime(hours) { const totalMins = Math.round(hours * 60); if (totalMins < 60) return `${totalMins}mins`; const h = Math.floor(totalMins / 60); const m = totalMins % 60; return m === 0 ? `${h}h` : `${h}h ${m}m`; }
-        function submitAction(actionType) { const config = CONFIG[state.selectedIndex]; const noteInput = document.getElementById('actionNote'); const note = noteInput.value.trim(); const now = Date.now(); if (actionType === 'inbox' || actionType === 'start_now') { state.pending.unshift({ id: now, createdAt: now, startedAt: actionType === 'start_now' ? now : null, accumulatedTime: 0, type: config.name, configId: config.id, emoji: config.emoji, note: note || '未命名任务', status: actionType === 'start_now' ? 'running' : 'idle', timerEnabled: true, hasStartedOnce: actionType === 'start_now' }); } else if (actionType === 'finish_direct') { finalizeTask({ type: config.name, configId: config.id, emoji: config.emoji, note: note || '直接注入', accumulatedTime: 0, status: 'idle' }); } save(); renderPending(true); noteInput.value = ''; }
-        function finalizeTask(task, pendingId = null) { const config = CONFIG.find(c => c.id === task.configId); if (!config) return; let totalWorkSeconds = task.accumulatedTime || 0; if (task.status === 'running' && task.startedAt) { totalWorkSeconds += (Date.now() - task.startedAt) / 1000; } let awardHours = config.type === 'multiplier' ? (totalWorkSeconds / 3600) * config.factor : config.value; awardHours = Math.min(awardHours, MAX_SINGLE_AWARD); state.timeLeft += awardHours * 3600; const now = new Date(); const dateStr = `${String(now.getMonth() + 1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`; const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' }); state.history.unshift({ id: Date.now(), type: task.type, emoji: task.emoji, add: awardHours, addLabel: formatAwardTime(awardHours), statusLabel: "DONE", statusColor: "text-green-500", duration: totalWorkSeconds > 0 ? formatDuration(totalWorkSeconds) : "-", note: task.note, timestamp: `${dateStr} ${timeStr}` }); if (pendingId) state.pending = state.pending.filter(p => p.id !== pendingId); showFeedback('inject'); save(); render(); renderPending(true); }
-        function cancelTask(id) { state.pending = state.pending.filter(t => t.id !== id); save(); renderPending(true); }
-        function toggleTask(id) { const task = state.pending.find(t => t.id === id); if (!task) return; const now = Date.now(); if (task.status === 'running') { task.accumulatedTime += (now - task.startedAt) / 1000; task.status = 'idle'; task.startedAt = null; } else { task.status = 'running'; task.startedAt = now; task.hasStartedOnce = true; } save(); renderPending(true); }
-        function toggleTimer(id) { const task = state.pending.find(t => t.id === id); if (!task) return; task.timerEnabled = !task.timerEnabled; save(); renderPending(true); }
-        function formatDuration(seconds) { const h = Math.floor(seconds / 3600); const m = Math.floor((seconds % 3600) / 60); const s = Math.floor(seconds % 60); return `${h > 0 ? h + 'h' : ''}${m}m${s}s`; }
-        function showFeedback(type) { const el = document.getElementById('timeDisplay'); if (type === 'inject') { el.classList.add('text-blue-500', 'scale-105'); setTimeout(() => el.classList.remove('text-blue-500', 'scale-105'), 500); } else if (type === 'punish') { el.classList.add('text-red-500', 'animate-shake'); setTimeout(() => el.classList.remove('text-red-500', 'animate-shake'), 500); } }
-        function renderPending(forceRedraw = false) { const container = document.getElementById('pendingContainer'); if (state.pending.length === 0) { container.innerHTML = `<div class="text-center py-6 text-[10px] opacity-20 tracking-[0.4em] font-black">NO PENDING TASKS</div>`; return; } if (forceRedraw) { container.innerHTML = state.pending.map(task => ` <div class="pending-item px-4 py-2 rounded-xl bg-slate-500/5 border border-slate-500/10 flex items-center justify-between gap-3 ${getThemeClass(task.configId)}" data-id="${task.id}"> <div class="task-timer-bar ${task.hasStartedOnce ? 'hidden' : ''}" id="bar-${task.id}"></div> <div class="flex items-center gap-2 overflow-hidden shrink min-w-0 flex-grow relative z-10"> <span class="text-lg shrink-0">${task.emoji}</span> <div class="flex flex-col overflow-hidden"> <div class="flex items-center gap-1.5"> <span class="text-[9px] font-black opacity-30 uppercase tracking-tighter shrink-0">${task.type}</span> <span class="text-[11px] font-bold truncate opacity-80 border-l border-slate-500/20 pl-2">“${task.note}”</span> </div> <span id="reward-${task.id}" class="text-[9px] font-black mt-0.5 opacity-0 transition-opacity"></span> </div> </div> <div class="flex items-center gap-3 shrink-0 relative z-10"> <div class="flex flex-col items-end min-w-[50px]"> ${task.hasStartedOnce ? `<span class="text-[8px] font-mono font-black opacity-30">LOCKED</span>` : `<button onclick="toggleTimer(${task.id})" class="text-[9px] font-mono font-black ${task.timerEnabled ? 'text-red-500/60' : 'text-slate-500'}" id="life-${task.id}">${task.timerEnabled ? '--h--m' : 'PAUSED'}</button>`} <span class="text-[10px] font-mono font-black text-amber-500" id="work-${task.id}">00:00</span> </div> <div class="flex items-center gap-1.5"> <button onclick="toggleTask(${task.id})" class="w-10 py-1 rounded-lg text-[9px] font-black border uppercase transition-all ${task.status === 'running' ? 'bg-slate-700/50 text-slate-400 border-slate-600' : 'bg-amber-600/20 text-amber-500 border-amber-500/20'}">${task.status === 'running' ? 'STOP' : 'START'}</button> <button onclick='finalizeTask(${JSON.stringify(task).replace(/'/g, "&apos;")}, ${task.id})' class="w-10 py-1 bg-green-600/20 text-green-400 rounded-lg text-[9px] font-black border border-green-500/20 uppercase">DONE</button> <button onclick="cancelTask(${task.id})" class="text-slate-500 hover:text-red-400 pl-1"><span class="text-lg font-bold">&times;</span></button> </div> </div> </div> `).join(''); } const now = Date.now(); state.pending.forEach(task => { const config = CONFIG.find(c => c.id === task.configId); if (!task.hasStartedOnce) { const elapsedLife = (now - task.createdAt) / 1000; const remainLife = Math.max(0, TASK_LIFESPAN - elapsedLife); const percent = (remainLife / TASK_LIFESPAN) * 100; const hL = Math.floor(remainLife / 3600); const mL = Math.floor((remainLife % 3600) / 60); const lifeEl = document.getElementById(`life-${task.id}`); const barEl = document.getElementById(`bar-${task.id}`); if (lifeEl && task.timerEnabled) lifeEl.innerText = `${hL}h${String(mL).padStart(2,'0')}m`; if (barEl) barEl.style.width = `${percent}%`; } const workEl = document.getElementById(`work-${task.id}`); let currentWorkSeconds = task.accumulatedTime || 0; if (task.status === 'running' && task.startedAt) currentWorkSeconds += (now - task.startedAt) / 1000; if (workEl) { const hW = Math.floor(currentWorkSeconds / 3600); const mW = Math.floor((currentWorkSeconds % 3600) / 60); const sW = Math.floor(currentWorkSeconds % 60); workEl.innerText = `${hW > 0 ? hW + ':' : ''}${String(mW).padStart(2,'0')}:${String(sW).padStart(2,'0')}`; workEl.style.opacity = currentWorkSeconds > 0 ? "1" : "0.3"; } const rewardEl = document.getElementById(`reward-${task.id}`); if (rewardEl && config) { let expectedHrs = config.type === 'multiplier' ? Math.min((currentWorkSeconds / 3600) * config.factor, MAX_SINGLE_AWARD) : config.value; if (task.status === 'running' || currentWorkSeconds > 0) { rewardEl.innerText = `EXPECTED +${formatAwardTime(expectedHrs)}`; rewardEl.classList.remove('opacity-0'); if (task.status === 'running') rewardEl.classList.add('reward-pulse'); else rewardEl.classList.remove('reward-pulse'); } else { rewardEl.classList.add('opacity-0'); } } }); }
-        function tick() { if (state.timeLeft > 0) { state.timeLeft -= 1; const now = Date.now(); const initialCount = state.pending.length; let punished = false; state.pending = state.pending.filter(task => { if (task.hasStartedOnce) return true; if (!task.timerEnabled) { task.createdAt += 1000; return true; } const elapsed = (now - task.createdAt) / 1000; if (elapsed >= TASK_LIFESPAN) { state.timeLeft = Math.max(0, state.timeLeft - PUNISHMENT); const d = new Date(); const ds = `${String(d.getMonth() + 1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${d.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' })}`; state.history.unshift({ id: Date.now(), emoji: '⚠️', add: -3, addLabel: "-3h", statusLabel: "EXPIRED", statusColor: "text-red-500", note: `TIMEOUT: ${task.note}`, type: task.type, duration: "-", timestamp: ds }); punished = true; return false; } return true; }); if (punished) showFeedback('punish'); renderPending(state.pending.length !== initialCount); render(); if (state.timeLeft % 10 === 0) save(); } else { handleDeath(); } }
-        function render() { const display = document.getElementById('timeDisplay'); const h = Math.floor(state.timeLeft / 3600); const m = Math.floor((state.timeLeft % 3600) / 60); const s = Math.floor(state.timeLeft % 60); display.innerText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`; const innerCirc = 753.98; const innerProgress = (state.timeLeft % PROGRESS_CYCLE) / PROGRESS_CYCLE; const innerEl = document.getElementById('innerCircle'); innerEl.style.strokeDashoffset = innerCirc * (1 - innerProgress); if (state.timeLeft < 12 * 3600) innerEl.style.stroke = '#ef4444'; else if (state.timeLeft < 24 * 3600) innerEl.style.stroke = '#eab308'; else innerEl.style.stroke = '#22c55e'; const outerCirc = 879.64; const cycleSec = 6 * 3600; const outerProgress = (state.timeLeft % cycleSec) / cycleSec; document.getElementById('outerCircle').style.strokeDashoffset = outerCirc * (1 - outerProgress); }
-        function undo() { if (state.history.length === 0) return; const last = state.history.shift(); state.timeLeft = Math.max(0, state.timeLeft - (last.add * 3600)); save(); render(); }
-        function save() { localStorage.setItem('st_timeLeft', state.timeLeft); localStorage.setItem('st_history', JSON.stringify(state.history.slice(0, 100))); localStorage.setItem('st_pending', JSON.stringify(state.pending)); }
+        const CONFIG = [
+            { id: 'core', name: '核心', emoji: '🎯', type: 'multiplier', factor: 2.0 },
+            { id: 'input', name: '输入', emoji: '📚', type: 'multiplier', factor: 1.2 },
+            { id: 'self_care', name: '修身', emoji: '🌱', type: 'fixed', value: 1.5 },
+            { id: 'admin', name: '杂项', emoji: '📎', type: 'fixed', value: 0.4 },
+            { id: 'spark', name: '灵感', emoji: '⚡', type: 'fixed', value: 0.1 }
+        ];
+
+        let state = {
+            timeLeft: parseFloat(localStorage.getItem('st_timeLeft')) || 48 * 3600,
+            history: JSON.parse(localStorage.getItem('st_history')) || [],
+            pending: JSON.parse(localStorage.getItem('st_pending')) || [],
+            isDark: true,
+            selectedIndex: 0
+        };
+
+        function save() {
+            localStorage.setItem('st_timeLeft', state.timeLeft);
+            localStorage.setItem('st_history', JSON.stringify(state.history.slice(0, 100)));
+            localStorage.setItem('st_pending', JSON.stringify(state.pending));
+        }
+
+        function initPicker() {
+            const picker = document.getElementById('typePicker');
+            picker.innerHTML = CONFIG.map((item, index) => `
+                <div class="picker-item ${index === 0 ? 'active' : ''}" onclick="scrollToItem(${index})">
+                    <span class="text-3xl mb-1">${item.emoji}</span>
+                    <span class="text-[10px] font-black opacity-60">${item.name}</span>
+                </div>
+            `).join('');
+            
+            picker.onscroll = () => {
+                const center = picker.scrollLeft + picker.offsetWidth / 2;
+                const items = picker.querySelectorAll('.picker-item');
+                let activeIdx = 0; let minDiff = Infinity;
+                items.forEach((item, idx) => {
+                    const diff = Math.abs(center - (item.offsetLeft + item.offsetWidth / 2));
+                    if (diff < minDiff) { minDiff = diff; activeIdx = idx; }
+                });
+                if (state.selectedIndex !== activeIdx) {
+                    state.selectedIndex = activeIdx;
+                    updatePickerVisuals();
+                }
+            };
+        }
+
+        function scrollToItem(index) {
+            const picker = document.getElementById('typePicker');
+            const item = picker.children[index];
+            picker.scrollTo({ left: item.offsetLeft - (picker.offsetWidth / 2) + (item.offsetWidth / 2), behavior: 'smooth' });
+        }
+
+        function updatePickerVisuals() {
+            const items = document.querySelectorAll('.picker-item');
+            items.forEach((item, idx) => item.classList.toggle('active', idx === state.selectedIndex));
+            const config = CONFIG[state.selectedIndex];
+            document.getElementById('injectValue').innerText = config.type === 'multiplier' ? `${config.factor}x` : `+${config.value}h`;
+        }
+
+        function submitAction(type) {
+            const config = CONFIG[state.selectedIndex];
+            const note = document.getElementById('actionNote').value.trim() || '未命名任务';
+            const now = Date.now();
+            if (type === 'finish_direct') {
+                const awardHours = Math.min(config.type === 'fixed' ? config.value : 0, MAX_SINGLE_AWARD);
+                state.timeLeft += awardHours * 3600;
+                addHistory(config, note, awardHours, "直接完成");
+            } else {
+                state.pending.unshift({
+                    id: now, createdAt: now, note, emoji: config.emoji, 
+                    type: config.name, configId: config.id, status: type === 'start_now' ? 'running' : 'idle',
+                    startedAt: type === 'start_now' ? now : null, accumulatedTime: 0
+                });
+            }
+            document.getElementById('actionNote').value = '';
+            save(); render(); renderPending(true);
+        }
+
+        function addHistory(config, note, hours, statusLabel) {
+            const now = new Date();
+            state.history.unshift({
+                id: Date.now(), emoji: config.emoji, type: config.name, note,
+                add: hours, addLabel: hours.toFixed(1) + 'h', statusLabel,
+                timestamp: now.getHours() + ":" + String(now.getMinutes()).padStart(2,'0')
+            });
+        }
+
+        function finalizeTask(id) {
+            const task = state.pending.find(t => t.id === id);
+            const config = CONFIG.find(c => c.id === task.configId);
+            let totalSec = task.accumulatedTime || 0;
+            if (task.status === 'running') totalSec += (Date.now() - task.startedAt) / 1000;
+            const awardHours = Math.min(config.type === 'multiplier' ? (totalSec/3600)*config.factor : config.value, MAX_SINGLE_AWARD);
+            state.timeLeft += awardHours * 3600;
+            addHistory(config, task.note, awardHours, "任务完成");
+            state.pending = state.pending.filter(p => p.id !== id);
+            save(); render(); renderPending(true);
+        }
+
+        function toggleTask(id) {
+            const task = state.pending.find(t => t.id === id);
+            if (!task) return;
+            if (task.status === 'running') {
+                task.accumulatedTime += (Date.now() - task.startedAt) / 1000;
+                task.status = 'idle'; task.startedAt = null;
+            } else {
+                task.status = 'running'; task.startedAt = Date.now();
+            }
+            save(); renderPending(true);
+        }
+
+        function renderPending(force = false) {
+            const container = document.getElementById('pendingContainer');
+            if (force) {
+                container.innerHTML = state.pending.map(t => `
+                    <div class="pending-item bg-white/5 p-4 rounded-2xl flex items-center justify-between border border-white/5 shadow-lg">
+                        <div class="task-timer-bar" id="bar-${t.id}"></div>
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <span class="text-2xl">${t.emoji}</span>
+                            <div class="flex flex-col truncate">
+                                <span class="text-[9px] font-black opacity-40 uppercase tracking-tighter">${t.type}</span>
+                                <span class="text-sm font-bold truncate">“${t.note}”</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 relative z-10">
+                            <button onclick="toggleTask(${t.id})" class="px-3 py-1.5 rounded-lg text-[10px] font-black ${t.status === 'running' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'} border border-current">
+                                ${t.status === 'running' ? 'STOP' : 'START'}
+                            </button>
+                            <button onclick="finalizeTask(${t.id})" class="px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-[10px] font-black border border-current">DONE</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            const now = Date.now();
+            state.pending.forEach(t => {
+                const bar = document.getElementById(`bar-${t.id}`);
+                if (bar) {
+                    const elapsed = (now - t.createdAt) / 1000;
+                    const percent = Math.max(0, 100 - (elapsed / TASK_LIFESPAN) * 100);
+                    bar.style.width = percent + '%';
+                    if (percent <= 0) {
+                        state.timeLeft -= PUNISHMENT;
+                        state.pending = state.pending.filter(p => p.id !== t.id);
+                        save(); render(); renderPending(true);
+                    }
+                }
+            });
+        }
+
+        function tick() {
+            if (state.timeLeft > 0) {
+                state.timeLeft -= 1;
+                render(); renderPending();
+                if (Math.floor(state.timeLeft) % 30 === 0) save();
+            } else handleDeath();
+        }
+
+        function render() {
+            const h = Math.floor(state.timeLeft / 3600);
+            const m = Math.floor((state.timeLeft % 3600) / 60);
+            const s = Math.floor(state.timeLeft % 60);
+            document.getElementById('timeDisplay').innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            document.getElementById('innerCircle').style.strokeDashoffset = 753.98 * (1 - (state.timeLeft % PROGRESS_CYCLE) / PROGRESS_CYCLE);
+            document.getElementById('outerCircle').style.strokeDashoffset = 879.64 * (1 - (state.timeLeft % (6*3600)) / (6*3600));
+        }
+
+        function toggleTheme() {
+            state.isDark = !state.isDark;
+            document.body.classList.toggle('light-mode', !state.isDark);
+            document.getElementById('themeIcon').innerText = state.isDark ? '🌙' : '☀️';
+        }
+
+        function toggleHistory(show) {
+            const drawer = document.getElementById('historyDrawer');
+            if (show) {
+                document.getElementById('historyList').innerHTML = state.history.map(h => `
+                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl text-xs">
+                        <div class="flex items-center gap-2"><span>${h.emoji}</span><span class="font-bold">${h.note}</span></div>
+                        <div class="flex items-center gap-2 font-mono"><span class="${h.add >=0 ? 'text-green-400' : 'text-red-400'}">${h.addLabel}</span><span class="opacity-30 ml-2">${h.timestamp}</span></div>
+                    </div>
+                `).join('');
+                drawer.style.transform = 'translateY(0)';
+            } else {
+                drawer.style.transform = 'translateY(100%)';
+            }
+        }
+
+        function undo() {
+            if (state.history.length === 0) return;
+            const last = state.history.shift();
+            state.timeLeft = Math.max(0, state.timeLeft - (last.add * 3600));
+            save(); render();
+        }
+
+        function reborn() { state.timeLeft = 48*3600; state.pending = []; save(); location.reload(); }
         function handleDeath() { document.getElementById('deathOverlay').classList.remove('hidden'); }
-        function reborn() { state.timeLeft = 48 * 3600; state.history = []; state.pending = []; save(); document.getElementById('deathOverlay').classList.add('hidden'); render(); renderPending(true); }
-        function toggleHistory(show) { const drawer = document.getElementById('historyDrawer'); if (show) { const list = document.getElementById('historyList'); if (state.history.length === 0) { list.innerHTML = `<div class="text-center pt-20 opacity-20 font-black text-xs uppercase tracking-widest">NO LOGS</div>`; } else { list.innerHTML = state.history.map(item => ` <div class="px-4 py-2 rounded-xl bg-slate-500/5 border border-slate-500/10 flex items-center justify-between gap-3"> <div class="flex items-center gap-2 overflow-hidden shrink min-w-0"> <span class="text-sm shrink-0">${item.emoji}</span> <span class="text-[9px] font-black ${item.statusColor} shrink-0">${item.statusLabel}</span> <span class="text-[9px] font-black opacity-30 shrink-0 uppercase tracking-tighter">${item.type}</span> <span class="text-[11px] font-bold truncate opacity-80 border-l border-slate-500/20 pl-2">“${item.note}”</span> </div> <div class="flex items-center gap-2 shrink-0"> <span class="text-[10px] font-mono font-black ${item.add >= 0 ? 'text-green-500' : 'text-red-500'}">${item.add >= 0 ? '+' : ''}${item.addLabel}</span> ${item.duration && item.duration !== "-" ? `<span class="text-[9px] font-mono opacity-40 italic">⌛${item.duration}</span>` : ''} <span class="text-[9px] font-mono opacity-30 whitespace-nowrap">${item.timestamp}</span> </div> </div> `).join(''); } drawer.classList.add('open'); } else { drawer.classList.remove('open'); } }
-        function toggleTheme() { state.isDark = !state.isDark; const icon = document.getElementById('themeIcon'); if (state.isDark) { document.body.classList.remove('light-mode'); icon.innerText = '🌙'; } else { document.body.classList.add('light-mode'); icon.innerText = '☀️'; } }
+
         initPicker(); render(); renderPending(true); setInterval(tick, 1000);
     </script>
 </body>
