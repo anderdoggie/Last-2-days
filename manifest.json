@@ -1,0 +1,17 @@
+{
+short_name 生存倒计时,
+name 生存倒计时 - nid Project,
+icons [
+{
+src httpswww.google.comsearchq=httpscdn-icons-png.flaticon.com51235633563411.png,
+sizes 512x512,
+type imagepng,
+purpose any maskable
+}
+],
+start_url index.html,
+display standalone,
+theme_color #0f172a,
+background_color #0f172a,
+orientation portrait
+}
