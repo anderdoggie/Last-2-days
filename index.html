@@ -23,16 +23,16 @@
         .ring-bg { fill: none; stroke: #1e293b; stroke-width: 10; opacity: 0.2; }
         body.light-mode .ring-bg { stroke: #cbd5e1; opacity: 0.5; }
         
-        /* 滚动选择器 */
-        .picker-relative { position: relative; width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
-        .picker-relative::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 16px; height: 3px; background: var(--accent); border-radius: 10px; pointer-events: none; opacity: 0.6; }
+        /* 标准水平滚动选择器 */
+        .picker-relative { position: relative; width: 100%; height: 60px; display: flex; align-items: center; justify-content: center; }
+        .picker-relative::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 20px; height: 3px; background: var(--accent); border-radius: 10px; pointer-events: none; opacity: 0.6; }
 
         .picker-container { 
             display: flex; 
             overflow-x: auto; 
             scroll-snap-type: x mandatory; 
             scrollbar-width: none; 
-            padding: 0 calc(50% - 30px); 
+            padding: 0 calc(50% - 35px); 
             mask-image: linear-gradient(to right, transparent, black 45%, black 55%, transparent); 
             -webkit-overflow-scrolling: touch; 
             width: 100%;
@@ -42,20 +42,21 @@
         .picker-container::-webkit-scrollbar { display: none; }
         
         .picker-item { 
-            flex: 0 0 60px; 
+            flex: 0 0 70px; 
             scroll-snap-align: center; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             justify-content: center; 
-            transition: all 0.2s ease; 
+            transition: all 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28); 
             opacity: 0.15; 
             transform: scale(0.7); 
             user-select: none;
         }
-        .picker-item.active { opacity: 1; transform: scale(1.15); }
+        .picker-item.active { opacity: 1; transform: scale(1.2); }
+        .picker-item.active span:last-child { opacity: 1; letter-spacing: 0.05em; }
         
-        #pendingContainer { flex: 1; overflow-y: auto; padding: 0.25rem 1rem; }
+        #pendingContainer { flex: 1; overflow-y: auto; padding: 0.5rem 1rem; }
         .tap-scale:active { transform: scale(0.96); }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
         body.light-mode .glass { background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.05); }
@@ -67,54 +68,51 @@
 </head>
 <body onclick="resumeAudio()">
 
-    <!-- Header 紧凑化 -->
-    <header class="flex justify-between items-center px-6 py-1.5 shrink-0">
-        <button onclick="toggleTheme()" class="w-8 h-8 flex items-center justify-center glass rounded-xl tap-scale">
-            <span id="themeIcon" class="text-sm">🌙</span>
+    <header class="flex justify-between items-center px-6 py-2 shrink-0">
+        <button onclick="toggleTheme()" class="w-9 h-9 flex items-center justify-center glass rounded-2xl tap-scale">
+            <span id="themeIcon">🌙</span>
         </button>
         <div class="flex gap-2">
-            <button onclick="undo()" class="px-2.5 py-1 glass rounded-lg text-[8px] font-bold text-orange-400 tap-scale">UNDO</button>
-            <button onclick="toggleHistory(true)" class="px-2.5 py-1 glass rounded-lg text-[8px] font-bold tap-scale">HISTORY</button>
+            <button onclick="undo()" class="px-3 py-1.5 glass rounded-xl text-[9px] font-bold text-orange-400 tap-scale">UNDO</button>
+            <button onclick="toggleHistory(true)" class="px-3 py-1.5 glass rounded-xl text-[9px] font-bold tap-scale">HISTORY</button>
         </div>
     </header>
 
-    <!-- Main 紧凑化 -->
-    <main class="flex flex-col items-center justify-center py-0.5 shrink-0">
-        <div class="relative w-40 h-40">
-            <svg width="160" height="160" viewBox="0 0 320 320">
+    <main class="flex flex-col items-center justify-center py-1 shrink-0">
+        <div class="relative w-44 h-44">
+            <svg width="176" height="176" viewBox="0 0 320 320">
                 <circle class="ring-bg" cx="160" cy="160" r="120" />
                 <circle id="innerCircle" class="ring-inner" cx="160" cy="160" r="120" stroke-dasharray="753.98" stroke-dashoffset="0" stroke="#10b981" />
                 <circle class="ring-bg" cx="160" cy="160" r="140" style="stroke-width:2;" />
                 <circle id="outerCircle" class="ring-outer" cx="160" cy="160" r="140" stroke-dasharray="879.64" stroke-dashoffset="0" stroke="#3b82f6" />
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <div id="timeDisplay" class="text-xl font-mono font-bold tracking-tight">00:00:00</div>
-                <div class="text-[6px] opacity-40 tracking-[0.3em] uppercase mt-0.5">Life Remaining</div>
+                <div id="timeDisplay" class="text-2xl font-mono font-bold tracking-tight">00:00:00</div>
+                <div class="text-[7px] opacity-40 tracking-[0.3em] uppercase mt-0.5">Life Remaining</div>
             </div>
         </div>
     </main>
 
-    <!-- 操作区位置交换及紧凑化 -->
-    <div class="px-6 py-1.5 flex flex-col gap-2 shrink-0">
-        <!-- 1. 任务类型选择器 (移至上方) -->
+    <div class="px-6 py-2 flex flex-col gap-2.5 shrink-0">
+        <!-- 任务选择器 -->
         <div class="picker-relative">
             <div id="typePicker" class="picker-container"></div>
         </div>
 
-        <!-- 2. 备注输入框 -->
-        <input id="actionNote" type="text" placeholder="What's the plan?" class="w-full glass rounded-xl px-4 py-2 text-xs text-center outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
+        <!-- 备注输入 -->
+        <input id="actionNote" type="text" placeholder="What's the plan?" class="w-full glass rounded-2xl px-5 py-2.5 text-sm text-center outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
         
-        <!-- 3. 按钮组 -->
-        <div class="flex gap-2">
-            <button onclick="submitAction('inbox')" class="flex-1 py-2 btn-gradient-blue text-white font-bold rounded-lg tap-scale">
-                <span class="text-[8px] tracking-widest uppercase">Inbox</span>
+        <!-- 操作按钮：文字增大 -->
+        <div class="flex gap-2.5">
+            <button onclick="submitAction('inbox')" class="flex-1 py-3 btn-gradient-blue text-white font-black rounded-xl tap-scale">
+                <span class="text-xs tracking-widest uppercase">Inbox</span>
             </button>
-            <button onclick="submitAction('start_now')" class="flex-1 py-2 btn-gradient-amber text-white font-bold rounded-lg tap-scale">
-                <span class="text-[8px] tracking-widest uppercase">Start</span>
+            <button onclick="submitAction('start_now')" class="flex-1 py-3 btn-gradient-amber text-white font-black rounded-xl tap-scale">
+                <span class="text-xs tracking-widest uppercase">Start</span>
             </button>
-            <button onclick="submitAction('finish_direct')" class="flex-[1.2] py-2 btn-gradient-emerald text-white font-bold rounded-lg tap-scale relative">
-                <span class="text-[8px] tracking-widest uppercase">Done</span>
-                <div id="injectValue" class="absolute right-1 top-1 text-[6px] bg-white/20 px-1 py-0.5 rounded-full">+0.5h</div>
+            <button onclick="submitAction('finish_direct')" class="flex-[1.2] py-3 btn-gradient-emerald text-white font-black rounded-xl tap-scale relative">
+                <span class="text-xs tracking-widest uppercase">Done</span>
+                <div id="injectValue" class="absolute right-1 top-1 text-[8px] bg-white/30 backdrop-blur-md px-1.5 py-0.5 rounded-full font-mono">+0.5h</div>
             </button>
         </div>
     </div>
@@ -122,18 +120,17 @@
     <!-- 待办列表 -->
     <div id="pendingContainer"></div>
 
-    <!-- 抽屉和覆盖层保持不变 -->
     <div id="historyDrawer" class="fixed inset-0 z-50 transform translate-y-full transition-transform duration-500 flex flex-col">
         <div class="flex-grow" onclick="toggleHistory(false)"></div>
-        <div class="bg-slate-950/95 backdrop-blur-xl rounded-t-[2rem] p-6 h-[70vh] flex flex-col border-t border-white/5">
-            <div class="w-10 h-1 bg-white/10 rounded-full mx-auto mb-6"></div>
-            <div id="historyList" class="overflow-y-auto space-y-2.5 flex-grow pb-10"></div>
+        <div class="bg-slate-950/95 backdrop-blur-xl rounded-t-[2.5rem] p-8 h-[75vh] flex flex-col border-t border-white/5">
+            <div class="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8"></div>
+            <div id="historyList" class="overflow-y-auto space-y-3 flex-grow pb-10"></div>
         </div>
     </div>
 
     <div id="deathOverlay" class="hidden fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950 px-10">
-        <div class="text-red-500 text-5xl font-black mb-4 animate-pulse">TERMINATED</div>
-        <button onclick="reborn()" class="w-full max-w-xs py-3.5 bg-white text-black font-black rounded-xl tap-scale">RE-INITIALIZE</button>
+        <div class="text-red-500 text-6xl font-black mb-4 animate-pulse">TERMINATED</div>
+        <button onclick="reborn()" class="w-full max-w-xs py-4 bg-white text-black font-black rounded-2xl tap-scale">RE-INITIALIZE</button>
     </div>
 
     <script>
@@ -170,13 +167,13 @@
                 const gain = audioCtx.createGain();
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.04);
-                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.04);
+                osc.stop(audioCtx.currentTime + 0.05);
             } catch(e) {}
         }
 
@@ -256,20 +253,20 @@
             const container = document.getElementById('pendingContainer');
             if (force) {
                 container.innerHTML = state.pending.map(t => `
-                    <div class="glass p-3 rounded-xl flex items-center justify-between mb-2 relative overflow-hidden">
+                    <div class="glass p-3 rounded-2xl flex items-center justify-between mb-2 relative overflow-hidden">
                         <div class="task-timer-bar" id="bar-${t.id}"></div>
                         <div class="flex items-center gap-3">
-                            <span class="text-lg">${t.emoji}</span>
+                            <span class="text-xl">${t.emoji}</span>
                             <div class="flex flex-col truncate">
-                                <span class="text-[6px] font-bold opacity-30">${t.type}</span>
-                                <span class="text-[10px] font-semibold">${t.note}</span>
+                                <span class="text-[7px] font-bold opacity-30">${t.type}</span>
+                                <span class="text-[11px] font-semibold">${t.note}</span>
                             </div>
                         </div>
-                        <div class="flex gap-1.5">
-                            <button onclick="toggleTask(${t.id})" class="px-2 py-1 rounded-md text-[7px] font-bold ${t.status === 'running' ? 'bg-red-500/20 text-red-500' : 'bg-amber-500/20 text-amber-500'}">
+                        <div class="flex gap-2">
+                            <button onclick="toggleTask(${t.id})" class="px-2.5 py-1.5 rounded-lg text-[8px] font-bold ${t.status === 'running' ? 'bg-red-500/20 text-red-500' : 'bg-amber-500/20 text-amber-500'}">
                                 ${t.status === 'running' ? 'STOP' : 'START'}
                             </button>
-                            <button onclick="finalizeTask(${t.id})" class="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-md text-[7px] font-bold">DONE</button>
+                            <button onclick="finalizeTask(${t.id})" class="px-2.5 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-[8px] font-bold">DONE</button>
                         </div>
                     </div>
                 `).join('');
@@ -317,17 +314,17 @@
             const drawer = document.getElementById('historyDrawer');
             if (show) {
                 document.getElementById('historyList').innerHTML = state.history.map(h => `
-                    <div class="flex items-center justify-between p-3.5 glass rounded-xl">
-                        <div class="flex items-center gap-2.5">
-                            <span class="text-lg">${h.emoji}</span>
+                    <div class="flex items-center justify-between p-4 glass rounded-2xl">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">${h.emoji}</span>
                             <div class="flex flex-col">
-                                <span class="text-[8px] font-bold text-blue-400">${h.type}</span>
-                                <span class="text-[10px] font-medium">${h.note}</span>
+                                <span class="text-[10px] font-bold text-blue-400">${h.type}</span>
+                                <span class="text-xs font-medium">${h.note}</span>
                             </div>
                         </div>
                         <div class="text-right">
-                            <div class="text-[10px] font-mono font-bold ${h.add >= 0 ? 'text-emerald-400' : 'text-red-400'}">${h.addLabel}</div>
-                            <div class="text-[7px] opacity-30">${h.timestamp}</div>
+                            <div class="text-xs font-mono font-bold ${h.add >= 0 ? 'text-emerald-400' : 'text-red-400'}">${h.addLabel}</div>
+                            <div class="text-[8px] opacity-30">${h.timestamp}</div>
                         </div>
                     </div>
                 `).join('');
@@ -342,8 +339,8 @@
         function initPicker() {
             picker.innerHTML = CONFIG.map((item, index) => `
                 <div class="picker-item" data-index="${index}">
-                    <span class="text-2xl mb-0.5">${item.emoji}</span>
-                    <span class="text-[6px] font-bold opacity-30 uppercase tracking-tighter transition-all">${item.name}</span>
+                    <span class="text-3xl mb-0.5">${item.emoji}</span>
+                    <span class="text-[7px] font-bold opacity-40 uppercase tracking-tighter transition-all">${item.name}</span>
                 </div>
             `).join('');
             picker.addEventListener('scroll', updatePickerActive, { passive: true });
