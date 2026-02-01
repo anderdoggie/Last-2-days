@@ -9,7 +9,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="生存倒计时">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3563/3563411.png">
-    <link id="manifest-link" rel="manifest">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -24,7 +23,7 @@
         .ring-bg { fill: none; stroke: #1e293b; stroke-width: 10; opacity: 0.2; }
         body.light-mode .ring-bg { stroke: #cbd5e1; opacity: 0.5; }
         
-        /* 循环滚动选择器样式 */
+        /* 标准水平滚动选择器 */
         .picker-container { 
             display: flex; 
             overflow-x: auto; 
@@ -33,7 +32,6 @@
             padding: 0 calc(50% - 35px); 
             mask-image: linear-gradient(to right, transparent, black 40%, black 60%, transparent); 
             -webkit-overflow-scrolling: touch; 
-            position: relative;
         }
         .picker-container::-webkit-scrollbar { display: none; }
         .picker-item { 
@@ -44,12 +42,12 @@
             align-items: center; 
             justify-content: center; 
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-            opacity: 0.15; 
-            transform: scale(0.7); 
+            opacity: 0.2; 
+            transform: scale(0.8); 
         }
         .picker-item.active { opacity: 1; transform: scale(1.1); }
         
-        #pendingContainer { flex: 1; overflow-y: auto; padding: 0.75rem 1rem; }
+        #pendingContainer { flex: 1; overflow-y: auto; padding: 0.5rem 1rem; }
         .tap-scale:active { transform: scale(0.96); }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
         body.light-mode .glass { background: rgba(0, 0, 0, 0.03); border: 1px solid rgba(0, 0, 0, 0.05); }
@@ -71,9 +69,9 @@
         </div>
     </header>
 
-    <main class="flex flex-col items-center justify-center py-2 shrink-0">
-        <div class="relative w-48 h-48">
-            <svg width="192" height="192" viewBox="0 0 320 320">
+    <main class="flex flex-col items-center justify-center py-1 shrink-0">
+        <div class="relative w-44 h-44">
+            <svg width="176" height="176" viewBox="0 0 320 320">
                 <circle class="ring-bg" cx="160" cy="160" r="120" />
                 <circle id="innerCircle" class="ring-inner" cx="160" cy="160" r="120" stroke-dasharray="753.98" stroke-dashoffset="0" stroke="#10b981" />
                 <circle class="ring-bg" cx="160" cy="160" r="140" style="stroke-width:2;" />
@@ -86,20 +84,20 @@
         </div>
     </main>
 
-    <div class="px-6 py-2 flex flex-col gap-3 shrink-0">
+    <div class="px-6 py-2 flex flex-col gap-2.5 shrink-0">
         <input id="actionNote" type="text" placeholder="What's the plan?" class="w-full glass rounded-2xl px-5 py-2.5 text-sm text-center outline-none focus:ring-2 focus:ring-blue-500/50 transition-all">
         
-        <div id="typePicker" class="picker-container h-14"></div>
+        <div id="typePicker" class="picker-container h-12"></div>
         
         <div class="flex gap-2.5">
             <button onclick="submitAction('inbox')" class="flex-1 py-2.5 btn-gradient-blue text-white font-bold rounded-xl tap-scale">
-                <span class="text-[9px] tracking-widest">INBOX</span>
+                <span class="text-[9px] tracking-widest uppercase">Inbox</span>
             </button>
             <button onclick="submitAction('start_now')" class="flex-1 py-2.5 btn-gradient-amber text-white font-bold rounded-xl tap-scale">
-                <span class="text-[9px] tracking-widest">START</span>
+                <span class="text-[9px] tracking-widest uppercase">Start</span>
             </button>
             <button onclick="submitAction('finish_direct')" class="flex-[1.2] py-2.5 btn-gradient-emerald text-white font-bold rounded-xl tap-scale relative">
-                <span class="text-[9px] tracking-widest">DONE</span>
+                <span class="text-[9px] tracking-widest uppercase">Done</span>
                 <div id="injectValue" class="absolute right-1.5 top-1.5 text-[7px] bg-white/20 px-1 py-0.5 rounded-full">+0.5h</div>
             </button>
         </div>
@@ -138,8 +136,7 @@
             history: JSON.parse(localStorage.getItem('st_history')) || [],
             pending: JSON.parse(localStorage.getItem('st_pending')) || [],
             isDark: localStorage.getItem('st_isDark') !== 'false',
-            selectedIndex: 0,
-            trueLength: CONFIG.length
+            selectedIndex: 0
         };
 
         // --- 音效系统 ---
@@ -150,14 +147,14 @@
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.1);
+                osc.stop(audioCtx.currentTime + 0.08);
             } catch(e) {}
         }
 
@@ -244,9 +241,9 @@
             const container = document.getElementById('pendingContainer');
             if (force) {
                 container.innerHTML = state.pending.map(t => `
-                    <div class="glass p-3 rounded-2xl flex items-center justify-between mb-2.5 relative overflow-hidden">
+                    <div class="glass p-3 rounded-2xl flex items-center justify-between mb-2 relative overflow-hidden">
                         <div class="task-timer-bar" id="bar-${t.id}"></div>
-                        <div class="flex items-center gap-2.5">
+                        <div class="flex items-center gap-3">
                             <span class="text-xl">${t.emoji}</span>
                             <div class="flex flex-col truncate">
                                 <span class="text-[7px] font-bold opacity-30">${t.type}</span>
@@ -327,39 +324,35 @@
         function reborn() { localStorage.clear(); location.reload(); }
         function handleDeath() { document.getElementById('deathOverlay').classList.remove('hidden'); }
 
-        // --- 循环滚动选择器逻辑 ---
+        // --- 简单滚动选择器逻辑 ---
         const picker = document.getElementById('typePicker');
         const ITEM_WIDTH = 70;
         
         function initPicker() {
-            // 扩展数据以支持循环：[A B C] -> [A B C] [A B C] [A B C]
-            const extendedConfigs = [...CONFIG, ...CONFIG, ...CONFIG];
-            picker.innerHTML = extendedConfigs.map((item, index) => `
-                <div class="picker-item" data-index="${index % state.trueLength}">
+            picker.innerHTML = CONFIG.map((item, index) => `
+                <div class="picker-item" data-index="${index}">
                     <span class="text-2xl mb-0.5">${item.emoji}</span>
                     <span class="text-[7px] font-bold opacity-60 uppercase">${item.name}</span>
                 </div>
             `).join('');
 
-            // 初始化位置
-            setTimeout(() => {
-                picker.scrollLeft = state.trueLength * ITEM_WIDTH;
-                updatePickerActive();
-            }, 50);
+            // 监听滚动进行更新
+            picker.addEventListener('scroll', updatePickerActive);
+            
+            // 首次初始化
+            setTimeout(updatePickerActive, 50);
         }
 
         function updatePickerActive() {
             const center = picker.scrollLeft + picker.offsetWidth / 2;
             let minDiff = Infinity;
             let activeItem = null;
-            let activeIdxInDom = -1;
 
-            [...picker.children].forEach((item, idx) => {
+            [...picker.children].forEach((item) => {
                 const diff = Math.abs(center - (item.offsetLeft + item.offsetWidth / 2));
                 if (diff < minDiff) {
                     minDiff = diff;
                     activeItem = item;
-                    activeIdxInDom = idx;
                 }
             });
 
@@ -377,21 +370,7 @@
             }
         }
 
-        picker.addEventListener('scroll', () => {
-            const currentScroll = picker.scrollLeft;
-            const fullSetWidth = state.trueLength * ITEM_WIDTH;
-            
-            // 无缝循环纠正：当滚动到第一组或最后一组时，静默跳转
-            if (currentScroll <= (state.trueLength - 1) * ITEM_WIDTH) {
-                picker.scrollLeft += fullSetWidth;
-            } else if (currentScroll >= (state.trueLength * 2) * ITEM_WIDTH) {
-                picker.scrollLeft -= fullSetWidth;
-            }
-            
-            updatePickerActive();
-        });
-
-        // 初始化
+        // 初始化执行
         initPicker();
         toggleTheme(true);
         setInterval(tick, 1000);
