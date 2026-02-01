@@ -351,7 +351,15 @@
             picker.addEventListener('scroll', updatePickerActive, { passive: true });
             
             // 首次初始化
-            setTimeout(updatePickerActive, 50);
+            setTimeout(() => {
+                // 确保第一个元素（CORE）处于 active 状态
+                if (picker.children.length > 0) {
+                    picker.children[0].classList.add('active');
+                    const c = CONFIG[0];
+                    document.getElementById('injectValue').innerText = c.type === 'multiplier' ? `${c.factor}x` : `+${c.value}h`;
+                }
+                updatePickerActive();
+            }, 50);
         }
 
         function updatePickerActive() {
